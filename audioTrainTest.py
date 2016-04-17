@@ -704,18 +704,23 @@ def fileClassification(inputFile, modelName, modelType):
 
     [Fs, x] = audioBasicIO.readAudioFile(inputFile)        # read audio file and convert to mono
     x = audioBasicIO.stereo2mono(x)
-    # feature extraction:
-    [MidTermFeatures, s] = aF.mtFeatureExtraction(x, Fs, mtWin * Fs, mtStep * Fs, round(Fs * stWin), round(Fs * stStep))
-    MidTermFeatures = MidTermFeatures.mean(axis=1)        # long term averaging of mid-term statistics
-    if computeBEAT:
-        [beat, beatConf] = aF.beatExtraction(s, stStep)
-        MidTermFeatures = numpy.append(MidTermFeatures, beat)
-        MidTermFeatures = numpy.append(MidTermFeatures, beatConf)
-    curFV = (MidTermFeatures - MEAN) / STD                # normalization
+    pl = []
+    for i in range(len(x)/blocksize):
+        [MidTermFeatures, s] = aF.mtFeatureExtraction(x[i*blocksize:(i+1)*blocksize], Fs, mtWin * Fs, mtStep * Fs, round(Fs * stWin), round(Fs * stStep))
+        MidTermFeatures = MidTermFeatures.mean(axis=1)        # long term averaging of mid-term statistics
+        if computeBEAT:
+            [beat, beatConf] = aF.beatExtraction(s, stStep)
+            MidTermFeatures = numpy.append(MidTermFeatures, beat)
+            MidTermFeatures = numpy.append(MidTermFeatures, beatConf)
+        curFV = (MidTermFeatures - MEAN) / STD                # normalization
 
-    [Result, P] = classifierWrapper(Classifier, modelType, curFV)    # classification
+        [Result, P] = classifierWrapper(Classifier, modelType, curFV)    # classification
+        pl.append(P[0])
+        print P
+    import pickle
+    pickle.dump(pl, open('/media/me/TOSHIBA EXT/tmp/pl.pickle','w'))
+    return
     return Result, P, classNames
-
 
 def fileRegression(inputFile, modelName, modelType):
     # Load classifier:
