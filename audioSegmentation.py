@@ -14,7 +14,7 @@ from sklearn.lda import LDA
 import csv
 import os.path
 import sklearn
-import sklearn.hmm
+import hmmlearn
 import cPickle
 import glob
 
@@ -319,11 +319,11 @@ def trainHMM_fromFile(wavFile, gtFile, hmmModelName, mtWin, mtStep):
     #F = aF.stFeatureExtraction(x, Fs, 0.050*Fs, 0.050*Fs);
     [F, _] = aF.mtFeatureExtraction(x, Fs, mtWin * Fs, mtStep * Fs, round(Fs * 0.050), round(Fs * 0.050))    # feature extraction
     startprob, transmat, means, cov = trainHMM_computeStatistics(F, flags)                    # compute HMM statistics (priors, transition matrix, etc)
-    
-    hmm = sklearn.hmm.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)            # hmm training
+
+    hmm = hmmlearn.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)            # hmm training
     hmm.means_ = means
     hmm.covars_ = cov
-    
+
     fo = open(hmmModelName, "wb")                                                             # output to file
     cPickle.dump(hmm, fo, protocol=cPickle.HIGHEST_PROTOCOL)
     cPickle.dump(classNames, fo, protocol=cPickle.HIGHEST_PROTOCOL)
@@ -381,7 +381,7 @@ def trainHMM_fromDir(dirPath, hmmModelName, mtWin, mtStep):
         else:
             Fall = numpy.concatenate((Fall, F), axis=1)
     startprob, transmat, means, cov = trainHMM_computeStatistics(Fall, flagsAll)        # compute HMM statistics
-    hmm = sklearn.hmm.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)      # train HMM
+    hmm = hmmlearn.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)      # train HMM
     hmm.means_ = means
     hmm.covars_ = cov
 
@@ -813,7 +813,7 @@ def speakerDiarization(fileName, numOfSpeakers, mtSize=2.0, mtStep=0.2, stWin=0.
     # Post-process method 1: hmm smoothing
     for i in range(1):
         startprob, transmat, means, cov = trainHMM_computeStatistics(MidTermFeaturesNormOr, cls)
-        hmm = sklearn.hmm.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)            # hmm training
+        hmm = hmmlearn.GaussianHMM(startprob.shape[0], "diag", startprob, transmat)            # hmm training
         hmm.means_ = means; hmm.covars_ = cov
         cls = hmm.predict(MidTermFeaturesNormOr.T)                    
     
@@ -889,7 +889,7 @@ def speakerDiarizationEvaluateScript(folderName, LDAs):
             speakerDiarization(wavFile, N[i], 2.0, 0.2, 0.05, l, PLOT = False)            
         print
         
-def musicThumbnailing(x, Fs, shortTermSize=1.0, shortTermStep=0.5, thumbnailSize=10.0, Limit1 = 0, Limit2 = 1):
+def musicThumbnailing(x, Fs, shortTermSize=1.0, shortTermStep=0.5, thumbnailSize=10.0):
     '''
     This function detects instances of the most representative part of a music recording, also called "music thumbnails".
     A technique similar to the one proposed in [1], however a wider set of audio features is used instead of chroma features.
@@ -944,28 +944,21 @@ def musicThumbnailing(x, Fs, shortTermSize=1.0, shortTermStep=0.5, thumbnailSize
                 S[i,j] = MIN;
 
     # find max position:
-    S[0:int(Limit1*S.shape[0]), :] = MIN
-    S[:, 0:int(Limit1*S.shape[0])] = MIN
-    S[int(Limit2*S.shape[0])::, :] = MIN
-    S[:, int(Limit2*S.shape[0])::] = MIN
-
-    maxVal = numpy.max(S)        
+    maxVal = numpy.max(S)
+    I = numpy.argmax(S)
     [I, J] = numpy.unravel_index(S.argmax(), S.shape)
-    #plt.imshow(S)
-    #plt.show()
+
     # expand:
     i1 = I; i2 = I
     j1 = J; j2 = J
 
-    while i2-i1<M: 
-        if i1 <=0 or j1<=0 or i2>=S.shape[0]-2 or j2>=S.shape[1]-2:       
-            break
-        if S[i1-1, j1-1] > S[i2+1,j2+1]:            
+    while i2-i1<M:
+        if S[i1-1, j1-1] > S[i2+1,j2+1]:
             i1 -= 1
-            j1 -= 1            
-        else:            
+            j1 -= 1
+        else:
             i2 += 1
-            j2 += 1            
+            j2 += 1
 
     return (shortTermStep*i1, shortTermStep*i2, shortTermStep*j1, shortTermStep*j2, S)
 
