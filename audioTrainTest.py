@@ -718,7 +718,7 @@ def fileClassification(inputFile, modelName, modelType):
         pl.append(P[0])
         print P
     import pickle
-    pickle.dump(pl, open('/media/me/TOSHIBA EXT/tmp/pl.pickle','w'))
+    pickle.dump(pl, open('pl.pickle','w'))
     return
     return Result, P, classNames
 
