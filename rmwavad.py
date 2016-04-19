@@ -6,6 +6,8 @@ def runningMeanFast(x, N):
     return np.convolve(x, np.ones((N,))/N)
     return np.convolve(x, np.ones((N,))/N)[(N-1):]
 
+fn = '~/Downloads/audio.wav'
+
 # run python audioAnalysis.py classifyFile -i ~/Downloads/audio.wav  --model svm --classifier data/svmSM
 # from [0,1] to [-1,1]
 pl=pickle.load(open('pl.pickle'))
@@ -51,10 +53,18 @@ for i in range(len(pl)):
             comment = '#'
             if mn < -.2:
                 comment = ''
-                ads.append([frm, i])
-            print comment+'play ~/Downloads/audio.wav trim %d %d # %f' % (frm, i-frm, mn)
+                ads.append(frm)
+                ads.append(i)
+            #print comment+'play ~/Downloads/audio.wav trim %d %d # %f' % (frm, i-frm, mn)
         sign = 1
-print ads
+
+# get increments
+for i in range(1, len(ads)):
+    ads[-i] = ads[-i]-ads[-i-1]
+print 'to play without ads:'
+print 'play ' + fn + ' trim '+' '.join([str(i) for i in [0]+ads])
+print 'to play ads only:'
+print 'play ' + fn + ' trim '+' '.join([str(i) for i in ads])
 
 plt.scatter(range(0,len(pl)),pl, color='blue', s=1)
 plt.scatter(range(0,len(pl)),[0]*len(pl), color='red', s=1)
